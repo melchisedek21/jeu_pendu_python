@@ -68,17 +68,29 @@ def sauvegarder_score(nom_joueur: str, score: int, difficulte: str, mot: str) ->
         print("Attention : impossible de sauvegarder le score (probleme de fichier).")
 
 
+def obtenir_meilleurs_scores(top_n: int = 5) -> list[dict]:
+    """Retourne les meilleurs scores enregistres, tries du plus haut au plus bas.
+
+    Args:
+        top_n: Le nombre de scores a retourner (5 par defaut).
+
+    Returns:
+        Une liste de dictionnaires de scores, triee par score decroissant.
+    """
+    scores = charger_scores()
+    return sorted(scores, key=lambda s: s["score"], reverse=True)[:top_n]
+
+
 def afficher_meilleurs_scores(top_n: int = 5) -> None:
-    """Affiche le classement des meilleurs scores enregistres.
+    """Affiche le classement des meilleurs scores enregistres (version terminal).
 
     Args:
         top_n: Le nombre de scores a afficher (5 par defaut).
     """
-    scores = charger_scores()
-    if not scores:
+    scores_tries = obtenir_meilleurs_scores(top_n)
+    if not scores_tries:
         print("Aucun score enregistre pour le moment.")
         return
-    scores_tries = sorted(scores, key=lambda s: s["score"], reverse=True)
     print(f"\n=== TOP {top_n} MEILLEURS SCORES ===")
-    for i, s in enumerate(scores_tries[:top_n], start=1):
+    for i, s in enumerate(scores_tries, start=1):
         print(f"{i}. {s['nom']} - {s['score']} pts ({s['difficulte']}, mot: {s['mot']})")
