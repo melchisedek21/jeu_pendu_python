@@ -1,15 +1,40 @@
 """Point d'entree du jeu du Pendu."""
 
 import os
+import select
+import sys
+
+from colorama import init, Fore, Style
 
 from mots import choisir_categorie, choisir_difficulte, choisir_mot
 from scores import calculer_score, sauvegarder_score, afficher_meilleurs_scores
 from dessins import DESSINS_PENDU
 
 ERREURS_MAX = 6
+TEMPS_LIMITE_SECONDES = 15
+
+init(autoreset=True)
 
 # Empeche le terminal d'afficher "^C" quand on appuie sur Ctrl+C (Linux/Mac uniquement)
 os.system("stty -echoctl 2>/dev/null")
+
+
+def saisie_avec_timeout(prompt: str, timeout: int) -> str | None:
+    """Demande une saisie a l'utilisateur avec une limite de temps.
+
+    Args:
+        prompt: Le texte affiche pour demander la saisie.
+        timeout: Le nombre de secondes autorisees avant expiration.
+
+    Returns:
+        La chaine saisie (nettoyee des espaces), ou None si le temps est ecoule.
+    """
+    print(prompt, end="", flush=True)
+    ready, _, _ = select.select([sys.stdin], [], [], timeout)
+    if ready:
+        return sys.stdin.readline().strip()
+    print()
+    return None
 
 
 def afficher_mot(mot: str, lettres_trouvees: set[str]) -> str:
@@ -46,19 +71,28 @@ def jouer_une_partie(nom_joueur: str) -> None:
     print(f"Le mot a deviner contient {len(mot)} lettres.")
 
     while erreurs < ERREURS_MAX:
-        print(DESSINS_PENDU[erreurs])
-        print(afficher_mot(mot, lettres_trouvees))
+        print(Fore.YELLOW + DESSINS_PENDU[erreurs])
+        print(Style.BRIGHT + afficher_mot(mot, lettres_trouvees))
         print(f"Erreurs : {erreurs}/{ERREURS_MAX}")
         print(f"Lettres deja essayees : {', '.join(sorted(lettres_essayees)) if lettres_essayees else 'aucune'}")
 
         if all(lettre in lettres_trouvees for lettre in mot):
             score = calculer_score(mot, erreurs, difficulte)
-            print(f"\nBRAVO ! Tu as trouve le mot : {mot}")
-            print(f"Score obtenu : {score} points")
+            print(Fore.GREEN + Style.BRIGHT + f"\nBRAVO ! Tu as trouve le mot : {mot}")
+            print(Fore.GREEN + f"Score obtenu : {score} points")
             sauvegarder_score(nom_joueur, score, difficulte, mot)
             return
 
-        proposition = input("Propose une lettre : ").lower().strip()
+        proposition_brute = saisie_avec_timeout(
+            f"Propose une lettre (max {TEMPS_LIMITE_SECONDES}s) : ", TEMPS_LIMITE_SECONDES
+        )
+
+        if proposition_brute is None:
+            erreurs += 1
+            print(Fore.RED + "Temps ecoule ! Ca compte comme une erreur.")
+            continue
+
+        proposition = proposition_brute.lower().strip()
 
         if len(proposition) != 1 or not proposition.isalpha() or not proposition.isascii():
             print("Merci de proposer une seule lettre valide (a-z, sans accent).")
@@ -72,13 +106,13 @@ def jouer_une_partie(nom_joueur: str) -> None:
 
         if proposition in mot:
             lettres_trouvees.add(proposition)
-            print("Bonne lettre !")
+            print(Fore.GREEN + "Bonne lettre !")
         else:
             erreurs += 1
-            print("Mauvaise lettre !")
+            print(Fore.RED + "Mauvaise lettre !")
 
-    print(DESSINS_PENDU[erreurs])
-    print(f"\nPERDU ! Le mot etait : {mot}")
+    print(Fore.YELLOW + DESSINS_PENDU[erreurs])
+    print(Fore.RED + Style.BRIGHT + f"\nPERDU ! Le mot etait : {mot}")
     sauvegarder_score(nom_joueur, 0, difficulte, mot)
 
 
