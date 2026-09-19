@@ -1,10 +1,15 @@
 """Point d'entree du jeu du Pendu."""
 
+import os
+
 from mots import choisir_categorie, choisir_difficulte, choisir_mot
 from scores import calculer_score, sauvegarder_score, afficher_meilleurs_scores
 from dessins import DESSINS_PENDU
 
 ERREURS_MAX = 6
+
+# Empeche le terminal d'afficher "^C" quand on appuie sur Ctrl+C (Linux/Mac uniquement)
+os.system("stty -echoctl 2>/dev/null")
 
 
 def afficher_mot(mot: str, lettres_trouvees: set[str]) -> str:
@@ -55,8 +60,8 @@ def jouer_une_partie(nom_joueur: str) -> None:
 
         proposition = input("Propose une lettre : ").lower().strip()
 
-        if len(proposition) != 1 or not proposition.isalpha():
-            print("Merci de proposer une seule lettre valide.")
+        if len(proposition) != 1 or not proposition.isalpha() or not proposition.isascii():
+            print("Merci de proposer une seule lettre valide (a-z, sans accent).")
             continue
 
         if proposition in lettres_essayees:
@@ -93,4 +98,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\nPartie interrompue. A bientot !")

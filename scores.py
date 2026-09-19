@@ -38,11 +38,11 @@ def charger_scores() -> list[dict]:
     """
     if not os.path.exists(FICHIER_SCORES):
         return []
-    with open(FICHIER_SCORES, "r", encoding="utf-8") as f:
-        try:
+    try:
+        with open(FICHIER_SCORES, "r", encoding="utf-8") as f:
             return json.load(f)
-        except json.JSONDecodeError:
-            return []
+    except (json.JSONDecodeError, OSError):
+        return []
 
 
 def sauvegarder_score(nom_joueur: str, score: int, difficulte: str, mot: str) -> None:
@@ -61,8 +61,11 @@ def sauvegarder_score(nom_joueur: str, score: int, difficulte: str, mot: str) ->
         "difficulte": difficulte,
         "mot": mot,
     })
-    with open(FICHIER_SCORES, "w", encoding="utf-8") as f:
-        json.dump(scores, f, indent=2, ensure_ascii=False)
+    try:
+        with open(FICHIER_SCORES, "w", encoding="utf-8") as f:
+            json.dump(scores, f, indent=2, ensure_ascii=False)
+    except OSError:
+        print("Attention : impossible de sauvegarder le score (probleme de fichier).")
 
 
 def afficher_meilleurs_scores(top_n: int = 5) -> None:
